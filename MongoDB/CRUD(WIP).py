@@ -1,276 +1,390 @@
-# Make a MongoDB Query Easier to be written and copy pasted
-# By @weiss-gcm and @shn-enaa
+# Automated version mongodb_ESS
+# Collaboration Between @weiss-gcm and @shn-enaa
 # このコードは、GitHubリポジトリにアップロードされる前に何度も修正されています。
 # https://www.mongodb.com/ja-jp/docs/manual/crud/
 # Work In Progress - Code isn't entirely stable.
 # 開発中 - コードは完全に安定していません。
 
+from pymongo import MongoClient
+from bson.objectid import ObjectId
+import re
 
-# Apparently code is looking weird enough already, however next step is making the Automation and make a separated language as well
-# @shn-enaa | JA_JP Translator & Write 60% of the code.
-# @weiss-gcm | EN_US & IN_ID Translator & Write 40% of the code.
+client = MongoClient("mongodb://localhost:27017/")
+db = client["mydatabase"]
+collection = db["mycollection"]
 
-#Documentation Coming Soon.... sorry owner is lazy atm
+def is_valid_object_id(oid):
+    """Check if a string is a valid ObjectId"""
+    return bool(re.match(r'^[0-9a-fA-F]{24}$', oid))
 
-collection_name = "collection"
+def convert_value(value):
+    """Convert string value to appropriate type"""
+    if value.lower() == 'null':
+        return None
+    elif value.lower() == 'true':
+        return True
+    elif value.lower() == 'false':
+        return False
+    elif value.isdigit():
+        return int(value)
+    elif value.replace('.', '', 1).isdigit():
+        return float(value)
+    else:
+        return value
 
 def menu_db():
-    print("\nMongoDB Query Generator | MongoDBクエリ生成ツール")
-    print("1. Insert Query | 挿入クエリ")
-    print("2. Find Query | 検索クエリ")
-    print("3. Update Query | 更新クエリ")
-    print("4. Delete Query | 削除クエリ")
-    print("5. Exit | 終了")
-    selection = input("Select Option (1-5) | 選択 (1～5): ")
+    print("\nMongoDB CRUD Operations")
+    print("1. Insert Data")
+    print("2. Read Data")
+    print("3. Update Data")
+    print("4. Delete Data")
+    print("5. Exit")
+    selection = input("Select Option (1-5): ")
     return selection
 
 def insert_data():
-    print("\nGenerate Insert Query | 挿入クエリ生成")
-    print("1. Insert One | 1件挿入")
-    print("2. Insert Many | 複数挿入")
-    print("3. Back to Main Menu | メインメニューに戻る")
-    choice = input("Select Option (1-3) | 選択 (1～3): ")
-
-    if choice == "1":
-        print("\nInsert One | 1件挿入")
-        print("Enter field names and values (type 'done' when finished) | フィールド名と値を入力 ('done'で終了):")
-        document = {}
-        while True:
-            key = input("Field name | フィールド名: ")
-            if key.lower() == 'done':
-                break
-            value = input(f"Value for {key} | {key}の値: ")
-            try:
-                value = int(value) if value.isdigit() else float(value) if value.replace('.', '', 1).isdigit() else value
-            except ValueError:
-                pass
-            document[key] = value
-
-        if document:
-            query = f"db.{collection_name}.insertOne({document})"
-            print("\nYour MongoDB query | 生成されたクエリ:")
-            print(query)
-        else:
-            print("No fields provided, query not generated. | フィールドが未入力のためクエリを生成できません。")
-
-    elif choice == "2":
-        print("\nInsert Many Documents | 複数ドキュメント挿入")
-        print("Enter documents one by one (type 'done' when finished) | ドキュメントを入力 ('done'で終了):")
-        documents = []
-        while True:
-            print(f"\nDocument #{len(documents) + 1} | ドキュメント #{len(documents) + 1}")
-            doc = {}
+    print("\nInsert Data")
+    print("1. Insert One")
+    print("2. Insert Many")
+    print("3. Back to Main Menu")
+    selection_in = input("Select Option (1-3): ")
+    
+    try:
+        if selection_in == "1":
+            # Insert One Document
+            document = {}
             while True:
-                key = input("Field name (or 'done' for this document) | フィールド名 ('done'でこのドキュメントを終了): ")
+                key = input("Enter field name (or 'done' to finish): ")
                 if key.lower() == 'done':
                     break
-                value = input(f"Value for {key} | {key}の値: ")
-                try:
-                    value = int(value) if value.isdigit() else float(value) if value.replace('.', '', 1).isdigit() else value
-                except ValueError:
-                    pass
-                doc[key] = value
-
-            if doc:
-                documents.append(doc)
+                if not key.strip():
+                    print("Field name cannot be empty!")
+                    continue
+                value = input(f"Enter value for {key}: ")
+                document[key] = convert_value(value)
+            
+            if document:
+                result = collection.insert_one(document)
+                print(f"Inserted document with ID: {result.inserted_id}")
             else:
-                print("Empty document skipped. | 空のドキュメントはスキップされます。")
-
-            more = input("Add another document? (y/n) | 別のドキュメントを追加しますか？ (y/n): ").lower()
-            if more != 'y':
-                break
-
-        if documents:
-            query = f"db.{collection_name}.insertMany({documents})"
-            print("\nYour MongoDB query | 生成されたクエリ:")
-            print(query)
-        else:
-            print("No documents provided, query not generated. | ドキュメントが未入力のためクエリを生成できません。")
-
-def find_data():
-    print("\nGenerate Find Query | 検索クエリ生成")
-    print("1. Find (Single Document Limit 1) | 1件検索")
-    print("2. Find with Limit | 複数検索 (件数指定)")
-    print("3. Find All | 全件検索")
-    print("4. Back to Main Menu | メインメニューに戻る")
-    choice = input("Select Option (1-4) | 選択 (1～4): ")
-
-    query = {}
-
-    print("\nBuild your query (leave empty to match all documents) | 検索条件を入力 (空欄で全件一致):")
-    print("Type 'done' to finish, or 'and'/'or' to use logical operators.")
-    
-    while True:
-        key = input("Field name or logical operator ('done', 'and', 'or'): ").strip()
-
-        if key.lower() == 'done':
-            break
-        elif key.lower() in ['and', 'or']:
-            subqueries = []
-            print(f"\nBuilding ${key} condition block:")
+                print("No data provided, insertion cancelled.")
+        
+        elif selection_in == "2":
+            # Insert Many Documents
+            documents = []
             while True:
-                sub_key = input("  Field for condition (or 'done'): ").strip()
-                if sub_key.lower() == 'done':
+                document = {}
+                print(f"\nDocument #{len(documents) + 1}")
+                while True:
+                    key = input("Enter field name (or 'done' to finish this document): ")
+                    if key.lower() == 'done':
+                        break
+                    if not key.strip():
+                        print("Field name cannot be empty!")
+                        continue
+                    value = input(f"Enter value for {key}: ")
+                    document[key] = convert_value(value)
+                
+                if document:
+                    documents.append(document)
+                else:
+                    print("Empty document skipped.")
+                
+                more = input("Add another document? (y/n): ").lower()
+                if more != 'y':
                     break
-                operator = input("  Operator ($eq, $ne, $gt, $gte, $lt, $lte): ").strip()
-                value = input("  Value: ").strip()
-                try:
-                    value = int(value) if value.isdigit() else float(value) if value.replace('.', '', 1).isdigit() else value
-                except ValueError:
-                    pass
-                subqueries.append({sub_key: {operator: value}})
-            query[f"${key}"] = subqueries
-        else:
-            operator = input("  Operator (press Enter for exact match, or $gt/$lt/etc): ").strip()
-            value = input("  Value: ").strip()
-            try:
-                value = int(value) if value.isdigit() else float(value) if value.replace('.', '', 1).isdigit() else value
-            except ValueError:
-                pass
-
-            if operator:
-                query[key] = {operator: value}
+            
+            if documents:
+                result = collection.insert_many(documents)
+                print(f"Inserted {len(result.inserted_ids)} documents with IDs: {result.inserted_ids}")
             else:
-                query[key] = value
+                print("No documents provided, insertion cancelled.")
+        elif selection_in == "3":
+            return
+        else:
+            print("Invalid selection!")
+    except Exception as e:
+        print(f"Error during insertion: {e}")
 
-    if choice == "1":
-        mongo_query = f"db.{collection_name}.find({query}).limit(1)"
-    elif choice == "2":
-        try:
-            limit = int(input("Maximum documents to return | 取得する最大件数: "))
-            mongo_query = f"db.{collection_name}.find({query}).limit({limit})"
-        except ValueError:
-            mongo_query = f"db.{collection_name}.find({query})"
-            print("Invalid number, using no limit. | 無効な数値のため制限なしで検索します。")
-    elif choice == "3":
-        mongo_query = f"db.{collection_name}.find({query})"
-    else:
-        return
-
-    print("\nYour MongoDB query | 生成されたクエリ:")
-    print(mongo_query)
+def read_data():
+    print("\nRead Data")
+    print("1. Read One")
+    print("2. Read Many")
+    print("3. Read All")
+    print("4. Back to Main Menu")
+    selection_rd = input("Select Option (1-4): ")
+    
+    try:
+        if selection_rd in ["1", "2", "3"]:
+            # Build query
+            query = {}
+            print("\nBuild your query (leave empty to match all documents)")
+            while True:
+                key = input("Enter field to filter by (or 'done' to finish): ")
+                if key.lower() == 'done':
+                    break
+                if not key.strip():
+                    print("Field name cannot be empty!")
+                    continue
+                value = input(f"Enter value for {key}: ")
+                
+                # Handle special case for _id field
+                if key == "_id":
+                    if is_valid_object_id(value):
+                        query[key] = ObjectId(value)
+                    else:
+                        print("Invalid ObjectId format for _id field!")
+                        continue
+                else:
+                    query[key] = convert_value(value)
+            
+            if selection_rd == "1":
+                # Find One
+                document = collection.find_one(query)
+                if document:
+                    print("\nFound document:")
+                    for key, value in document.items():
+                        if isinstance(value, ObjectId):
+                            print(f"{key}: {value} (ObjectId)")
+                        else:
+                            print(f"{key}: {value}")
+                else:
+                    print("No document found matching the query.")
+            
+            elif selection_rd == "2":
+                # Find Many with limit
+                try:
+                    limit_input = input("Enter maximum number of documents to display (default 5): ")
+                    limit = int(limit_input) if limit_input.isdigit() else 5
+                except ValueError:
+                    limit = 5
+                    print(f"Invalid input, defaulting to {limit} documents.")
+                
+                documents = list(collection.find(query).limit(limit))
+                count = len(documents)
+                for i, doc in enumerate(documents):
+                    print(f"\nDocument {i+1}:")
+                    for key, value in doc.items():
+                        if isinstance(value, ObjectId):
+                            print(f"{key}: {value} (ObjectId)")
+                        else:
+                            print(f"{key}: {value}")
+                
+                if count == 0:
+                    print("No documents found matching the query.")
+                else:
+                    total = collection.count_documents(query)
+                    if total > count:
+                        print(f"\nShowing {count} of {total} matching documents.")
+            
+            elif selection_rd == "3":
+                # Find All (with caution)
+                confirm = input("This may return many documents. Continue? (y/n): ").lower()
+                if confirm == 'y':
+                    documents = list(collection.find(query))
+                    count = len(documents)
+                    for i, doc in enumerate(documents):
+                        print(f"\nDocument {i+1}:")
+                        for key, value in doc.items():
+                            if isinstance(value, ObjectId):
+                                print(f"{key}: {value} (ObjectId)")
+                            else:
+                                print(f"{key}: {value}")
+                    
+                    if count == 0:
+                        print("No documents found matching the query.")
+                    else:
+                        print(f"\nTotal documents found: {count}")
+        elif selection_rd == "4":
+            return
+        else:
+            print("Invalid selection!")
+    except Exception as e:
+        print(f"Error during read operation: {e}")
 
 def update_data():
-    print("\nGenerate Update Query | 更新クエリ生成")
-    print("1. Update One | 1件更新")
-    print("2. Update Many | 複数更新")
-    print("3. Back to Main Menu | メインメニューに戻る")
-    choice = input("Select Option (1-3) | 選択 (1～3): ")
-
-    print("\nBuild your filter (which documents to update) | 更新対象のフィルタ条件:")
-    filter_query = {}
-    while True:
-        key = input("Field to filter by (or 'done' to finish) | フィルタ対象フィールド ('done'で終了): ")
-        if key.lower() == 'done':
-            break
-        value = input(f"Value for {key} | {key}の値: ")
-        try:
-            value = int(value) if value.isdigit() else float(value) if value.replace('.', '', 1).isdigit() else value
-        except ValueError:
-            pass
-        filter_query[key] = value
-
-    print("\nBuild your update operation | 更新内容を入力:")
-    print("Format examples | 入力例:")
-    print(" - Set field: field=new_value | フィールド設定: フィールド名=新しい値")
-    print(" - Increment: field+=number | 数値増加: フィールド名+=数値")
-    update = {}
-    while True:
-        op = input("Operation (or 'done' to finish) | 操作 ('done'で終了): ")
-        if op.lower() == 'done':
-            break
-
-        if "+=" in op:
-            field, value = op.split("+=")
-            field = field.strip()
-            try:
-                value = int(value.strip()) if value.strip().isdigit() else float(value.strip())
-            except ValueError:
-                print(f"Invalid number: {value} | 無効な数値: {value}")
-                continue
-            if "$inc" not in update:
-                update["$inc"] = {}
-            update["$inc"][field] = value
-        elif "=" in op:
-            field, value = op.split("=", 1)
-            field = field.strip()
-            value = value.strip()
-            try:
-                value = int(value) if value.isdigit() else float(value) if value.replace('.', '', 1).isdigit() else value
-            except ValueError:
-                pass
-            if "$set" not in update:
-                update["$set"] = {}
-            update["$set"][field] = value
+    print("\nUpdate Data")
+    print("1. Update One")
+    print("2. Update Many")
+    print("3. Back to Main Menu")
+    selection_up = input("Select Option (1-3): ")
+    
+    try:
+        if selection_up in ["1", "2"]:
+            # Build query
+            query = {}
+            print("\nBuild your query to select documents to update")
+            while True:
+                key = input("Enter field to filter by (or 'done' to finish): ")
+                if key.lower() == 'done':
+                    break
+                if not key.strip():
+                    print("Field name cannot be empty!")
+                    continue
+                value = input(f"Enter value for {key}: ")
+                
+                # Handle special case for _id field
+                if key == "_id":
+                    if is_valid_object_id(value):
+                        query[key] = ObjectId(value)
+                    else:
+                        print("Invalid ObjectId format for _id field!")
+                        continue
+                else:
+                    query[key] = convert_value(value)
+            
+            if not query:
+                print("Empty query will match all documents!")
+                confirm = input("Are you sure you want to update all documents? (y/n): ").lower()
+                if confirm != 'y':
+                    return
+            
+            # Build update
+            update = {}
+            print("\nBuild your update operation")
+            print("For setting values, use format: field=value")
+            print("For incrementing, use format: field+=value")
+            print("For other operators, see MongoDB documentation")
+            while True:
+                operation = input("Enter update operation (or 'done' to finish): ")
+                if operation.lower() == 'done':
+                    break
+                if not operation.strip():
+                    print("Operation cannot be empty!")
+                    continue
+                
+                if "+=" in operation:
+                    parts = operation.split("+=")
+                    if len(parts) != 2:
+                        print("Invalid format for increment operation!")
+                        continue
+                    field, value = parts
+                    field = field.strip()
+                    if not field:
+                        print("Field name cannot be empty!")
+                        continue
+                    try:
+                        value = value.strip()
+                        value = int(value) if value.isdigit() else float(value)
+                    except ValueError:
+                        print(f"Invalid number: {value}")
+                        continue
+                    if "$inc" not in update:
+                        update["$inc"] = {}
+                    update["$inc"][field] = value
+                elif "=" in operation:
+                    parts = operation.split("=")
+                    if len(parts) != 2:
+                        print("Invalid format for set operation!")
+                        continue
+                    field, value = parts
+                    field = field.strip()
+                    if not field:
+                        print("Field name cannot be empty!")
+                        continue
+                    value = value.strip()
+                    if "$set" not in update:
+                        update["$set"] = {}
+                    update["$set"][field] = convert_value(value)
+                else:
+                    print("Invalid operation format. Use field=value or field+=value")
+            
+            if not update:
+                print("No update operations provided.")
+                return
+            
+            if selection_up == "1":
+                # Update One
+                result = collection.update_one(query, update)
+                print(f"Matched {result.matched_count} document(s), modified {result.modified_count} document(s)")
+            else:
+                # Update Many
+                result = collection.update_many(query, update)
+                print(f"Matched {result.matched_count} document(s), modified {result.modified_count} document(s)")
+        elif selection_up == "3":
+            return
         else:
-            print("Invalid format. Use field=value or field+=number | 無効な形式。field=値 または field+=数値 で入力してください。")
-
-    if choice == "1":
-        mongo_query = f"db.{collection_name}.updateOne({filter_query}, {update})"
-    elif choice == "2":
-        mongo_query = f"db.{collection_name}.updateMany({filter_query}, {update})"
-    else:
-        return
-
-    print("\nYour MongoDB query | 生成されたクエリ:")
-    print(mongo_query)
+            print("Invalid selection!")
+    except Exception as e:
+        print(f"Error during update operation: {e}")
 
 def delete_data():
-    print("\nGenerate Delete Query | 削除クエリ生成")
-    print("1. Delete One | 1件削除")
-    print("2. Delete Many | 複数削除")
-    print("3. Back to Main Menu | メインメニューに戻る")
-    choice = input("Select Option (1-3) | 選択 (1～3): ")
-
-    print("\nBuild your filter (which documents to delete) | 削除対象のフィルタ条件:")
-    filter_query = {}
-    while True:
-        key = input("Field to filter by (or 'done' to finish) | フィルタ対象フィールド ('done'で終了): ")
-        if key.lower() == 'done':
-            break
-        value = input(f"Value for {key} | {key}の値: ")
-        try:
-            value = int(value) if value.isdigit() else float(value) if value.replace('.', '', 1).isdigit() else value
-        except ValueError:
-            pass
-        filter_query[key] = value
-
-    if choice == "1":
-        mongo_query = f"db.{collection_name}.deleteOne({filter_query})"
-    elif choice == "2":
-        mongo_query = f"db.{collection_name}.deleteMany({filter_query})"
-    else:
-        return
-
-    print("\nYour MongoDB query | 生成されたクエリ:")
-    print(mongo_query)
-
-def main():
-    global collection_name
-    print("Simple MongoDB Query Generator | MongoDBクエリ簡易生成ツール")
-    print("This tool helps you build MongoDB queries to copy-paste | コピペ用のMongoDBクエリを生成します")
-
-    collection_name = input("Enter your MongoDB collection name | MongoDBコレクション名を入力: ").strip()
-    if not collection_name:
-        collection_name = "collection"
-
-    while True:
-        selection = menu_db()
-        if selection == "1":
-            insert_data()
-        elif selection == "2":
-            find_data()
-        elif selection == "3":
-            update_data()
-        elif selection == "4":
-            delete_data()
-        elif selection == "5":
-            print("Goodbye! | 終了します。")
-            break
+    print("\nDelete Data")
+    print("1. Delete One")
+    print("2. Delete Many")
+    print("3. Back to Main Menu")
+    selection_del = input("Select Option (1-3): ")
+    
+    try:
+        if selection_del in ["1", "2"]:
+            # Build query
+            query = {}
+            print("\nBuild your query to select documents to delete")
+            while True:
+                key = input("Enter field to filter by (or 'done' to finish): ")
+                if key.lower() == 'done':
+                    break
+                if not key.strip():
+                    print("Field name cannot be empty!")
+                    continue
+                value = input(f"Enter value for {key}: ")
+                
+                # Handle special case for _id field
+                if key == "_id":
+                    if is_valid_object_id(value):
+                        query[key] = ObjectId(value)
+                    else:
+                        print("Invalid ObjectId format for _id field!")
+                        continue
+                else:
+                    query[key] = convert_value(value)
+            
+            if not query:
+                print("Empty query will match all documents!")
+                confirm = input("Are you sure you want to delete all documents? (y/n): ").lower()
+                if confirm != 'y':
+                    return
+            
+            if selection_del == "1":
+                # Delete One
+                result = collection.delete_one(query)
+                print(f"Deleted {result.deleted_count} document(s)")
+            else:
+                # Delete Many
+                result = collection.delete_many(query)
+                print(f"Deleted {result.deleted_count} document(s)")
+        elif selection_del == "3":
+            return
         else:
-            print("Invalid selection, please try again. | 無効な選択です。再試行してください。")
+            print("Invalid selection!")
+    except Exception as e:
+        print(f"Error during deletion: {e}")
 
-        input("\nPress Enter to continue... | Enterキーを押して続行...")
+def main_acv():
+    print("MongoDB CRUD Operations Helper")
+    try:
+        while True:
+            selection = menu_db()
+            if selection == "1":
+                insert_data()
+            elif selection == "2":
+                read_data()
+            elif selection == "3":
+                update_data()
+            elif selection == "4":
+                delete_data()
+            elif selection == "5":
+                print("Exiting...")
+                client.close()
+                break
+            else:
+                print("Invalid selection. Please try again.")
+    except KeyboardInterrupt:
+        print("\nProgram interrupted by user. Exiting...")
+        client.close()
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        client.close()
 
 if __name__ == "__main__":
-    main()
+    main_acv()
