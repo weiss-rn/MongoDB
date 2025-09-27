@@ -128,7 +128,7 @@ The tool automatically parses input strings into appropriate BSON types:
 
 ## 📄 License
 
-MIT License — feel free to use, modify, and distribute.
+MIT License | Feel free to use, modify, and distribute.
 
 ---
 
