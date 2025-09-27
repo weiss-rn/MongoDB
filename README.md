@@ -3,7 +3,7 @@
 A powerful, interactive command-line interface (CLI) tool for managing MongoDB databases using Python. This tool supports **all core CRUD operations**, advanced features like **aggregation pipelines**, **bulk writes**, **index management**, and more — all while following [MongoDB’s official CRUD documentation](https://www.mongodb.com/docs/manual/crud/).
 
 > No more writing repetitive queries — build filters, updates, and pipelines interactively!
-
+> @shn-enaa 「このコード、たぶんバグってるわ。もう時間かけすぎたから、文句は禁止ね！」
 ---
 
 ## Features
