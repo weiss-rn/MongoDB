@@ -42,7 +42,7 @@ A powerful, interactive command-line interface (CLI) tool for managing MongoDB d
 
 ---
 
-## 📦 Installation
+## Installation
 
 1. **Clone or download** this script:
    ```bash
