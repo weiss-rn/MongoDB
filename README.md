@@ -2,11 +2,11 @@
 
 A powerful, interactive command-line interface (CLI) tool for managing MongoDB databases using Python. This tool supports **all core CRUD operations**, advanced features like **aggregation pipelines**, **bulk writes**, **index management**, and more — all while following [MongoDB’s official CRUD documentation](https://www.mongodb.com/docs/manual/crud/).
 
-> ✅ No more writing repetitive queries — build filters, updates, and pipelines interactively!
+> No more writing repetitive queries — build filters, updates, and pipelines interactively!
 
 ---
 
-## 🚀 Features
+## Features
 
 - **Full CRUD Support**  
   - Insert one or many documents  
@@ -31,7 +31,7 @@ A powerful, interactive command-line interface (CLI) tool for managing MongoDB d
 
 ---
 
-## 🛠️ Requirements
+## Requirements
 
 - Python 3.7+
 - MongoDB server (local or cloud)
@@ -58,7 +58,7 @@ A powerful, interactive command-line interface (CLI) tool for managing MongoDB d
 
 ---
 
-## ▶️ Usage
+## Usage
 
 Run the script directly:
 
@@ -85,7 +85,7 @@ Collection name (default: mycollection): users
 
 ✓ Connected to MongoDB: testdb.users
 
-📍 Connected to: testdb.users
+Connected to: testdb.users
 
 --- INSERT OPERATIONS ---
 1.  Insert One Document
@@ -93,19 +93,19 @@ Collection name (default: mycollection): users
 
 Select operation (0-20): 1
 
-➕ INSERT ONE DOCUMENT
+INSERT ONE DOCUMENT
 Enter document fields (press Enter without input to finish):
 Field name: name
 Value for 'name': Alice
 Field name: age
 Value for 'age': 30
 Field name: 
-✓ Document inserted with _id: 6612abcd1234567890ab0123
+Document inserted with _id: 6612abcd1234567890ab0123
 ```
 
 ---
 
-## 🔐 Safety Notes
+## Safety Notes
 
 - **Delete operations require confirmation**  
 - **Empty delete/update queries show warnings**  
@@ -114,7 +114,7 @@ Field name:
 
 ---
 
-## 🧪 Supported Data Types
+## Supported Data Types
 
 The tool automatically parses input strings into appropriate BSON types:
 - `true` / `false` → `bool`
@@ -126,13 +126,13 @@ The tool automatically parses input strings into appropriate BSON types:
 
 ---
 
-## 📄 License
+## License
 
 MIT License | Feel free to use, modify, and distribute.
 
 ---
 
-## 💡 Tips
+## Tips
 
 - Use `_id=ObjectId("...")` to query by document ID  
 - Build complex filters with operators: `age>25`, `name~^Ali`, `status:in:["active","pending"]`  
