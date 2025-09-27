@@ -1,4 +1,4 @@
-# 🍃 MongoDB CRUD Operations Manager (IT'S NOT DONE YET)
+# 🍃 MongoDB CRUD Operations Manager (Broken, probably?)
 
 A powerful, interactive command-line interface (CLI) tool for managing MongoDB databases using Python. This tool supports **all core CRUD operations**, advanced features like **aggregation pipelines**, **bulk writes**, **index management**, and more — all while following [MongoDB’s official CRUD documentation](https://www.mongodb.com/docs/manual/crud/).
 
