@@ -46,7 +46,7 @@ A powerful, interactive command-line interface (CLI) tool for managing MongoDB d
 
 1. **Clone or download** this script:
    ```bash
-   wget https://your-domain.com/mongodb_crud_manager.py  # or just save the file
+   wget https://github.com/weiss-rn/MongoDB  # or just save the file
    ```
 
 2. **Install dependencies**:
