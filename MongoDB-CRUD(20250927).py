@@ -124,7 +124,7 @@ class MongoDBCRUD:
             Query filter dictionary
         """
         query = {}
-        print("\n📝 Build Query Filter (press Enter without input to finish)")
+        print("\n　Build Query Filter (press Enter without input to finish)")
         print("Supported formats:")
         print("  - field=value (exact match)")
         print("  - field>value (greater than)")
@@ -277,7 +277,7 @@ class MongoDBCRUD:
         
         while True:
             document = {}
-            print(f"\n📄 Document #{len(documents) + 1}")
+            print(f"\n Document #{len(documents) + 1}")
             print("Enter fields (press Enter without input to finish document):")
             
             while True:
@@ -310,7 +310,7 @@ class MongoDBCRUD:
     
     def find_one(self):
         """Find a single document"""
-        print("\n🔍 FIND ONE DOCUMENT")
+        print("\n FIND ONE DOCUMENT")
         query = self.build_query_filter()
         
         # Projection
@@ -453,7 +453,7 @@ class MongoDBCRUD:
     
     def replace_one(self):
         """Replace a document entirely"""
-        print("\n🔄 REPLACE ONE DOCUMENT")
+        print("\n REPLACE ONE DOCUMENT")
         query = self.build_query_filter()
         
         print("\nEnter replacement document:")
@@ -481,11 +481,11 @@ class MongoDBCRUD:
     
     def delete_one(self):
         """Delete a single document"""
-        print("\n🗑️ DELETE ONE DOCUMENT")
+        print("\n　DELETE ONE DOCUMENT")
         query = self.build_query_filter()
         
         if not query:
-            print("⚠ Empty query would delete a random document.")
+            print(" Empty query would delete a random document.")
             if not input("Continue? (y/n): ").lower().startswith('y'):
                 print("Operation cancelled.")
                 return
@@ -510,7 +510,7 @@ class MongoDBCRUD:
     
     def delete_many(self):
         """Delete multiple documents"""
-        print("\n🗑️ DELETE MULTIPLE DOCUMENTS")
+        print("\n DELETE MULTIPLE DOCUMENTS")
         query = self.build_query_filter()
         
         if not query:
@@ -763,5 +763,318 @@ class MongoDBCRUD:
             print(f"Average document size: {stats.get('avgObjSize', 0)} bytes")
             print(f"Total collection size: {stats.get('size', 0)} bytes")
             print(f"Storage size: {stats.get('storageSize', 0)} bytes")
-            print(f"Number
-# I'm tired bruh
+            print(f"Number of indexes: {stats.get('nindexes', 0)}")
+            print(f"Total index size: {stats.get('totalIndexSize', 0)} bytes")
+        except Exception as e:
+            print(f"✗ Error getting collection stats: {e}")
+    
+    def bulk_operations(self):
+        """Perform bulk write operations"""
+        print("\n⚡ BULK WRITE OPERATIONS")
+        from pymongo import InsertOne, UpdateOne, UpdateMany, ReplaceOne, DeleteOne, DeleteMany
+        
+        operations = []
+        operation_types = {
+            '1': 'InsertOne',
+            '2': 'UpdateOne',
+            '3': 'UpdateMany',
+            '4': 'ReplaceOne',
+            '5': 'DeleteOne',
+            '6': 'DeleteMany'
+        }
+        
+        print("Build bulk operations:")
+        while True:
+            print("\n1. InsertOne")
+            print("2. UpdateOne")
+            print("3. UpdateMany")
+            print("4. ReplaceOne")
+            print("5. DeleteOne")
+            print("6. DeleteMany")
+            op_type = input("Select operation (or press Enter to execute): ").strip()
+            
+            if not op_type:
+                break
+            
+            if op_type not in operation_types:
+                print("⚠ Invalid operation type")
+                continue
+            
+            try:
+                if op_type == '1':  # InsertOne
+                    print("Enter document to insert:")
+                    document = {}
+                    while True:
+                        field = input("Field name (or press Enter to finish): ").strip()
+                        if not field:
+                            break
+                        value = input(f"Value for '{field}': ").strip()
+                        document[field] = self.parse_value(value)
+                    if document:
+                        operations.append(InsertOne(document))
+                        print(f"✓ Added InsertOne operation")
+                
+                elif op_type in ['2', '3']:  # UpdateOne/UpdateMany
+                    print("Build filter:")
+                    filter_doc = self.build_query_filter()
+                    print("Build update:")
+                    update_doc = self.build_update_document()
+                    if update_doc:
+                        if op_type == '2':
+                            operations.append(UpdateOne(filter_doc, update_doc))
+                        else:
+                            operations.append(UpdateMany(filter_doc, update_doc))
+                        print(f"✓ Added {operation_types[op_type]} operation")
+                
+                elif op_type == '4':  # ReplaceOne
+                    print("Build filter:")
+                    filter_doc = self.build_query_filter()
+                    print("Enter replacement document:")
+                    replacement = {}
+                    while True:
+                        field = input("Field name (or press Enter to finish): ").strip()
+                        if not field:
+                            break
+                        value = input(f"Value for '{field}': ").strip()
+                        replacement[field] = self.parse_value(value)
+                    if replacement:
+                        operations.append(ReplaceOne(filter_doc, replacement))
+                        print(f"✓ Added ReplaceOne operation")
+                
+                elif op_type in ['5', '6']:  # DeleteOne/DeleteMany
+                    print("Build filter:")
+                    filter_doc = self.build_query_filter()
+                    if op_type == '5':
+                        operations.append(DeleteOne(filter_doc))
+                    else:
+                        operations.append(DeleteMany(filter_doc))
+                    print(f"✓ Added {operation_types[op_type]} operation")
+                
+            except Exception as e:
+                print(f"⚠ Error adding operation: {e}")
+        
+        if not operations:
+            print("⚠ No operations added. Bulk write cancelled.")
+            return
+        
+        print(f"\n📦 Executing {len(operations)} bulk operation(s)...")
+        ordered = input("Execute in order? (y/n): ").lower().startswith('y')
+        
+        try:
+            result = self.collection.bulk_write(operations, ordered=ordered)
+            print(f"✓ Bulk write completed:")
+            print(f"  Inserted: {result.inserted_count}")
+            print(f"  Matched: {result.matched_count}")
+            print(f"  Modified: {result.modified_count}")
+            print(f"  Deleted: {result.deleted_count}")
+            print(f"  Upserted: {result.upserted_count}")
+            if result.upserted_ids:
+                print(f"  Upserted IDs: {result.upserted_ids}")
+        except errors.BulkWriteError as e:
+            print(f"✗ Bulk write error: {e.details}")
+        except Exception as e:
+            print(f"✗ Error executing bulk write: {e}")
+
+
+class MongoDBCLI:
+    """Command-line interface for MongoDB CRUD operations"""
+    
+    def __init__(self):
+        self.crud = None
+        self.connected = False
+    
+    def connect(self):
+        """Establish MongoDB connection"""
+        print("\n🔌 MONGODB CONNECTION")
+        
+        # Connection options
+        print("1. Use default (mongodb://localhost:27017/)")
+        print("2. Enter custom connection string")
+        choice = input("Select option (1-2): ").strip()
+        
+        if choice == '2':
+            connection_string = input("Enter MongoDB URI: ").strip()
+        else:
+            connection_string = "mongodb://localhost:27017/"
+        
+        database_name = input("Database name (default: mydatabase): ").strip() or "mydatabase"
+        collection_name = input("Collection name (default: mycollection): ").strip() or "mycollection"
+        
+        try:
+            self.crud = MongoDBCRUD(connection_string, database_name, collection_name)
+            self.connected = True
+        except ConnectionError as e:
+            print(f"✗ {e}")
+            self.connected = False
+    
+    def switch_collection(self):
+        """Switch to a different collection"""
+        if not self.connected:
+            print("⚠ Not connected to MongoDB")
+            return
+        
+        database_name = input("Database name (or press Enter to keep current): ").strip()
+        collection_name = input("Collection name: ").strip()
+        
+        if not collection_name:
+            print("⚠ Collection name required")
+            return
+        
+        try:
+            if database_name:
+                self.crud.db = self.crud.client[database_name]
+            self.crud.collection = self.crud.db[collection_name]
+            print(f"✓ Switched to {self.crud.db.name}.{collection_name}")
+        except Exception as e:
+            print(f"✗ Error switching collection: {e}")
+    
+    def list_databases(self):
+        """List all databases"""
+        if not self.connected:
+            print("⚠ Not connected to MongoDB")
+            return
+        
+        try:
+            print("\n DATABASES:")
+            for db_name in self.crud.client.list_database_names():
+                print(f"  • {db_name}")
+        except Exception as e:
+            print(f"✗ Error listing databases: {e}")
+    
+    def list_collections(self):
+        """List all collections in current database"""
+        if not self.connected:
+            print("⚠ Not connected to MongoDB")
+            return
+        
+        try:
+            print(f"\n COLLECTIONS IN '{self.crud.db.name}':")
+            for coll_name in self.crud.db.list_collection_names():
+                print(f"  • {coll_name}")
+        except Exception as e:
+            print(f"✗ Error listing collections: {e}")
+    
+    def display_menu(self):
+        """Display main menu"""
+        print("\n" + "="*60)
+        print("🍃 MONGODB CRUD OPERATIONS MANAGER")
+        print("="*60)
+        
+        if self.connected:
+            print(f"📍 Connected to: {self.crud.db.name}.{self.crud.collection.name}")
+        else:
+            print("⚠ Not connected to MongoDB")
+        
+        print("\n--- INSERT OPERATIONS ---")
+        print("1.  Insert One Document")
+        print("2.  Insert Many Documents")
+        
+        print("\n--- READ OPERATIONS ---")
+        print("3.  Find One Document")
+        print("4.  Find Many Documents")
+        print("5.  Count Documents")
+        print("6.  Distinct Values")
+        
+        print("\n--- UPDATE OPERATIONS ---")
+        print("7.  Update One Document")
+        print("8.  Update Many Documents")
+        print("9.  Replace One Document")
+        
+        print("\n--- DELETE OPERATIONS ---")
+        print("10. Delete One Document")
+        print("11. Delete Many Documents")
+        
+        print("\n--- ADVANCED OPERATIONS ---")
+        print("12. Aggregation Pipeline")
+        print("13. Bulk Write Operations")
+        
+        print("\n--- INDEX OPERATIONS ---")
+        print("14. Create Index")
+        print("15. List Indexes")
+        
+        print("\n--- DATABASE/COLLECTION ---")
+        print("16. Collection Statistics")
+        print("17. List Databases")
+        print("18. List Collections")
+        print("19. Switch Collection")
+        
+        print("\n--- CONNECTION ---")
+        print("20. Connect/Reconnect")
+        print("0.  Exit")
+        print("="*60)
+    
+    def run(self):
+        """Main application loop"""
+        print("🍃 MongoDB CRUD Operations Manager")
+        print("   Professional MongoDB Database Management Tool")
+        print("   Following MongoDB Official Documentation")
+        
+        # Auto-connect on start
+        self.connect()
+        
+        operations = {
+            '1': lambda: self.crud.insert_one(),
+            '2': lambda: self.crud.insert_many(),
+            '3': lambda: self.crud.find_one(),
+            '4': lambda: self.crud.find_many(),
+            '5': lambda: self.crud.count_documents(),
+            '6': lambda: self.crud.distinct_values(),
+            '7': lambda: self.crud.update_one(),
+            '8': lambda: self.crud.update_many(),
+            '9': lambda: self.crud.replace_one(),
+            '10': lambda: self.crud.delete_one(),
+            '11': lambda: self.crud.delete_many(),
+            '12': lambda: self.crud.aggregate(),
+            '13': lambda: self.crud.bulk_operations(),
+            '14': lambda: self.crud.create_index(),
+            '15': lambda: self.crud.list_indexes(),
+            '16': lambda: self.crud.collection_stats(),
+            '17': lambda: self.list_databases(),
+            '18': lambda: self.list_collections(),
+            '19': lambda: self.switch_collection(),
+            '20': lambda: self.connect()
+        }
+        
+        while True:
+            try:
+                self.display_menu()
+                choice = input("\nSelect operation (0-20): ").strip()
+                
+                if choice == '0':
+                    print("\n　Closing MongoDB connection...")
+                    if self.crud:
+                        self.crud.client.close()
+                    print("✓ Thank you for using MongoDB CRUD Manager!")
+                    break
+                
+                if choice in operations:
+                    if choice == '20' or self.connected:
+                        operations[choice]()
+                    else:
+                        print("⚠ Please connect to MongoDB first (option 20)")
+                else:
+                    print("⚠ Invalid option. Please select a valid operation.")
+                
+                if choice not in ['0', '20']:
+                    input("\nPress Enter to continue...")
+                    
+            except KeyboardInterrupt:
+                print("\n\n⚠ Operation interrupted by user")
+                if input("Exit application? (y/n): ").lower().startswith('y'):
+                    if self.crud:
+                        self.crud.client.close()
+                    print("Goodbye!")
+                    break
+            except Exception as e:
+                print(f"✗ Unexpected error: {e}")
+                input("\nPress Enter to continue...")
+
+
+def main():
+    """Main entry point"""
+    cli = MongoDBCLI()
+    cli.run()
+
+
+if __name__ == "__main__":
+    main()
