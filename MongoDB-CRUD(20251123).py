@@ -197,7 +197,7 @@ class MongoDBCRUD:
             Update document dictionary
         """
         update = {}
-        print("\n📝 Build Update Operations")
+        print("\n Build Update Operations")
         print("Supported operations:")
         print("  - $set: field=value (set field value)")
         print("  - $inc: field+=value (increment by value)")
@@ -424,7 +424,7 @@ class MongoDBCRUD:
     
     def update_many(self):
         """Update multiple documents"""
-        print("\n✏️ UPDATE MULTIPLE DOCUMENTS")
+        print("\n UPDATE MULTIPLE DOCUMENTS")
         query = self.build_query_filter()
         
         if not query:
@@ -538,7 +538,7 @@ class MongoDBCRUD:
     
     def aggregate(self):
         """Perform aggregation pipeline"""
-        print("\n🔧 AGGREGATION PIPELINE")
+        print("\n AGGREGATION PIPELINE")
         pipeline = []
         
         print("Build aggregation pipeline (common stages):")
@@ -565,9 +565,14 @@ class MongoDBCRUD:
                         print("✓ Added $match stage")
                 
                 elif stage_type == '2':  # $group
-                    group_by = input("Group by field (use $_id for all): ").strip()
-                    if not group_by.startswith('$'):
-                        group_by = '$' + group_by if group_by != '_id' else None
+                    group_by_input = input("Group by field (leave blank to group all): ").strip()
+
+                    if not group_by_input or group_by_input == '*':
+                        group_by = None
+                    elif group_by_input.startswith('$'):
+                        group_by = group_by_input
+                    else:
+                        group_by = f"${group_by_input}"
                     
                     group_stage = {"_id": group_by}
                     
@@ -603,9 +608,21 @@ class MongoDBCRUD:
                         print("✓ Added $sort stage")
                 
                 elif stage_type == '4':  # $limit
-                    limit = int(input("Limit to how many documents: "))
-                    pipeline.append({"$limit": limit})
-                    print("✓ Added $limit stage")
+                    # limit = int(input("Limit to how many documents: "))
+                    # pipeline.append({"$limit": limit})
+                    # print("✓ Added $limit stage")
+
+                    
+                    limit_input = input("Limit to how many documents: ").strip()
+                    try:
+                        limit = int(limit_input)
+                        if limit < 0:
+                            raise ValueError("Limit must be non-negative")
+                    except ValueError as e:
+                        print(f"⚠ Invalid limit: {e}. Skipping $limit stage.")
+                    else:
+                        pipeline.append({"$limit": limit})
+                        print("✓ Added $limit stage")
                 
                 elif stage_type == '5':  # $project
                     project_stage = {}
@@ -650,7 +667,7 @@ class MongoDBCRUD:
             print("⚠ No pipeline stages added. Operation cancelled.")
             return
         
-        print("\n📊 Executing pipeline:")
+        print("\n Executing pipeline:")
         print(json.dumps(pipeline, indent=2))
         
         try:
@@ -667,7 +684,7 @@ class MongoDBCRUD:
     
     def count_documents(self):
         """Count documents matching a query"""
-        print("\n📊 COUNT DOCUMENTS")
+        print("\n COUNT DOCUMENTS")
         query = self.build_query_filter()
         
         try:
@@ -678,7 +695,7 @@ class MongoDBCRUD:
     
     def distinct_values(self):
         """Get distinct values for a field"""
-        print("\n🔍 DISTINCT VALUES")
+        print("\n DISTINCT VALUES")
         field = input("Field name: ").strip()
         if not field:
             print("⚠ Field name required")
@@ -741,7 +758,7 @@ class MongoDBCRUD:
     
     def list_indexes(self):
         """List all indexes on collection"""
-        print("\n📋 COLLECTION INDEXES")
+        print("\n COLLECTION INDEXES")
         try:
             indexes = list(self.collection.list_indexes())
             print(f"Found {len(indexes)} index(es):")
@@ -755,7 +772,7 @@ class MongoDBCRUD:
     
     def collection_stats(self):
         """Get collection statistics"""
-        print("\n📈 COLLECTION STATISTICS")
+        print("\n COLLECTION STATISTICS")
         try:
             stats = self.db.command("collStats", self.collection.name)
             print(f"Collection: {stats['ns']}")
@@ -770,7 +787,7 @@ class MongoDBCRUD:
     
     def bulk_operations(self):
         """Perform bulk write operations"""
-        print("\n⚡ BULK WRITE OPERATIONS")
+        print("\n BULK WRITE OPERATIONS")
         from pymongo import InsertOne, UpdateOne, UpdateMany, ReplaceOne, DeleteOne, DeleteMany
         
         operations = []
@@ -857,7 +874,7 @@ class MongoDBCRUD:
             print("⚠ No operations added. Bulk write cancelled.")
             return
         
-        print(f"\n📦 Executing {len(operations)} bulk operation(s)...")
+        print(f"\n Executing {len(operations)} bulk operation(s)...")
         ordered = input("Execute in order? (y/n): ").lower().startswith('y')
         
         try:
@@ -885,7 +902,7 @@ class MongoDBCLI:
     
     def connect(self):
         """Establish MongoDB connection"""
-        print("\n🔌 MONGODB CONNECTION")
+        print("\n MONGODB CONNECTION")
         
         # Connection options
         print("1. Use default (mongodb://localhost:27017/)")
@@ -961,7 +978,7 @@ class MongoDBCLI:
         print("="*60)
         
         if self.connected:
-            print(f"📍 Connected to: {self.crud.db.name}.{self.crud.collection.name}")
+            print(f" Connected to: {self.crud.db.name}.{self.crud.collection.name}")
         else:
             print("⚠ Not connected to MongoDB")
         
